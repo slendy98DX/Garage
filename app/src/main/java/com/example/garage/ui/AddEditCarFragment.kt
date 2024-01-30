@@ -48,7 +48,7 @@ class AddEditCarFragment : Fragment() {
 
     private var _binding: FragmentAddEditCarBinding? = null
 
-    private lateinit var modelSpinner: Spinner
+    private var modelSpinner: Spinner? = null
 
     private val binding get() = _binding!!
 
@@ -64,6 +64,12 @@ class AddEditCarFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        if(savedInstanceState != null) {
+            savedInstanceState?.getInt(KEY_SELECTED_MODEL_POSITION)?.let { position ->
+                modelSpinner?.setSelection(position)
+            }
+        }
 
         viewModel.selectedBrand.observe(viewLifecycleOwner) { selectedBrand ->
             if (!selectedBrand.isNullOrBlank()) {
@@ -85,8 +91,6 @@ class AddEditCarFragment : Fragment() {
 
         displacementAdapter.setDropDownViewResource(android.R.layout.simple_spinner_item)
         displacementSpinner.adapter = displacementAdapter
-
-        displacementSpinner.setSelection(0,false)
 
         displacementSpinner.onItemSelectedListener =
             object : AdapterView.OnItemSelectedListener {
@@ -116,6 +120,14 @@ class AddEditCarFragment : Fragment() {
 
         yearPicker.value = currentYear
 
+        viewModel.year.observe(viewLifecycleOwner) { year ->
+            yearPicker.value = year
+        }
+
+        yearPicker.setOnValueChangedListener { _, _, year ->
+            viewModel.setYear(year)
+        }
+
 
         val powerSupplySpinner: Spinner = binding.powerSupplySpinner
 
@@ -127,8 +139,6 @@ class AddEditCarFragment : Fragment() {
         )
         powerSupplyAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         powerSupplySpinner.adapter = powerSupplyAdapter
-
-        powerSupplySpinner.setSelection(0,false)
 
         powerSupplySpinner.onItemSelectedListener =
             object : AdapterView.OnItemSelectedListener {
@@ -149,16 +159,15 @@ class AddEditCarFragment : Fragment() {
 
         modelSpinner = binding.modelInput
 
-        modelSpinner.setSelection(0,false)
-
-        modelSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+        modelSpinner!!.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(
                 parent: AdapterView<*>,
                 selectedItemView: View?,
                 position: Int,
                 id: Long
             ) {
-                handleModelSpinnerSelection(position)
+                val selectedModel = parent.getItemAtPosition(position).toString()
+                viewModel.setSelectedCarModel(selectedModel)
                 setupSaveButtonState()
             }
 
@@ -187,28 +196,30 @@ class AddEditCarFragment : Fragment() {
                 saveCar()
             }
         } else {
-                viewModel.setSelectedBrand(viewModel.car.value!!.brand)
+            viewModel.setSelectedBrand(viewModel.car.value!!.brand)
             updateModelSpinner(carModels) {
                 setupSaveButtonState()
             }
-                    displacementSpinner.setSelection(displacementOptions.indexOf(viewModel.car.value!!.displacement))
-                    kmInput.setText(viewModel.car.value!!.km.toString())
-                    powerSupplySpinner.setSelection(powerSupplyOptions.indexOf(viewModel.car.value!!.powerSupply))
-                    yearPicker.value = viewModel.car.value!!.year
+            displacementSpinner.setSelection(displacementOptions.indexOf(viewModel.car.value!!.displacement))
+            kmInput.setText(viewModel.car.value!!.km.toString())
+            powerSupplySpinner.setSelection(powerSupplyOptions.indexOf(viewModel.car.value!!.powerSupply))
+            yearPicker.value = viewModel.car.value!!.year
             binding.apply {
                 saveBtn.setOnClickListener {
-                    if(binding.kmInput.text.toString().toDouble().minus(viewModel.car.value!!.km) > 15000) {
+                    if (binding.kmInput.text.toString().toDouble().minus(viewModel.car.value!!.km) > 15000) {
                         viewModel.scheduleReminder(viewModel.car.value!!.model)
                     }
-                    viewModel.setCar(Car (
-                        id = viewModel.car.value!!.id,
-                        model = binding.modelInput.selectedItem.toString(),
-                        brand = binding.brand.text.toString(),
-                        displacement = binding.displacementSpinner.selectedItem.toString(),
-                        km = binding.kmInput.text.toString().toDouble(),
-                        powerSupply = binding.powerSupplySpinner.selectedItem.toString(),
-                        year = binding.yearPicker.value
-                    ) )
+                    viewModel.setCar(
+                        Car(
+                            id = viewModel.car.value!!.id,
+                            model = binding.modelInput.selectedItem.toString(),
+                            brand = binding.brand.text.toString(),
+                            displacement = binding.displacementSpinner.selectedItem.toString(),
+                            km = binding.kmInput.text.toString().toDouble(),
+                            powerSupply = binding.powerSupplySpinner.selectedItem.toString(),
+                            year = binding.yearPicker.value
+                        )
+                    )
                     viewModel.updateCar(viewModel.car.value!!)
                     findNavController().navigate(R.id.action_addEditCarFragment_to_carListFragment)
                 }
@@ -247,12 +258,6 @@ class AddEditCarFragment : Fragment() {
             } catch (e: Exception) {
                 Log.e("AddEditCarFragment", "Error fetching car models: ${e.message}")
             }
-        }
-    }
-
-    private fun handleModelSpinnerSelection(position: Int) {
-        if (position > 0 && position < modelSpinner.adapter.count) {
-            viewModel.setSelectedCarModel(modelSpinner.adapter.getItem(position).toString())
         }
     }
 
@@ -298,19 +303,33 @@ class AddEditCarFragment : Fragment() {
             modelTitles
         )
         modelAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        modelSpinner.adapter = modelAdapter
+        modelSpinner?.adapter = modelAdapter
 
-        modelSpinner.setSelection(carModels.indexOf(viewModel.car.value!!.model) + 1)
-        modelSpinner.post {
+        viewModel.car.value?.let { car ->
+            val index = carModels.indexOf(car.model)
+            if (index != -1) {
+                modelSpinner?.setSelection(index)
+            }
+        }
+
+        modelSpinner?.post {
             callback()
         }
     }
 
-
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        // Save the selected model position
+        outState.putInt(KEY_SELECTED_MODEL_POSITION, modelSpinner!!.selectedItemPosition)
+    }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    companion object {
+        private const val KEY_SELECTED_MODEL_POSITION = "selected_model_position"
     }
 
 }

@@ -50,7 +50,7 @@
             android:id="@+id/action_addEditCarFragment_to_carListFragment"
             app:destination="@id/carListFragment"
             app:popUpTo="@id/carListFragment"
-            app:popUpToInclusive="false" />
+            app:popUpToInclusive="true" />
         <argument
             android:name="id"
             app:argType="long" />

@@ -1,6 +1,7 @@
 package com.example.garage.viewmodel
 
 import android.app.Application
+import android.icu.util.Calendar
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -31,6 +32,9 @@ class CarViewModel(application: Application, private val carDao: CarDao) : ViewM
     private val _logos = MutableLiveData<MutableList<Logo>>()
     val logos: LiveData<MutableList<Logo>> get() = _logos
 
+    private val _year = MutableLiveData<Int>()
+    val year: LiveData<Int> get() = _year
+
     private val _selectedLogo = MutableLiveData<String>()
     val selectedLogo : LiveData<String> get() = _selectedLogo
 
@@ -51,6 +55,10 @@ class CarViewModel(application: Application, private val carDao: CarDao) : ViewM
 
     fun setCar(car: Car) {
         _car.value = car
+    }
+
+    fun setYear(year : Int) {
+        _year.value = year
     }
 
     fun setSelectedCarModel(model: String) {

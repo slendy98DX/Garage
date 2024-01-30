@@ -1,6 +1,7 @@
 package com.example.garage.ui
 
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -51,6 +52,7 @@ class CarDetailsFragment : Fragment() {
 
                 editCar.setOnClickListener {
                     val action = CarListFragmentDirections.actionCarListFragmentToAddEditCarFragment(viewModel.car.value!!.id)
+                    viewModel.setYear(viewModel.car.value!!.year)
                     findNavController().navigate(action)
                 }
             }

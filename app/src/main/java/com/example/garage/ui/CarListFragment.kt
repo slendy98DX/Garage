@@ -1,5 +1,6 @@
 package com.example.garage.ui
 
+import android.icu.util.Calendar
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -62,19 +63,27 @@ class CarListFragment : Fragment() {
 
         })
 
-        if(resources.configuration.screenWidthDp > 600) {
+        if(resources.configuration.screenWidthDp > 900 || resources.configuration.screenHeightDp > 900) {
             binding.detailContainer.visibility = View.INVISIBLE
         }
 
         binding.recyclerView.adapter = adapter
-        lifecycleScope.launch {
-            viewModel.collectCars().collect{  carsList ->
-                adapter.submitList(carsList)
+        viewModel.logos.observe(viewLifecycleOwner) {
+            lifecycleScope.launch {
+                viewModel.collectCars().collect{  carsList ->
+                    adapter.submitList(carsList)
+                    if((resources.configuration.screenWidthDp >= 900 || resources.configuration.screenHeightDp >= 900) && carsList.isNotEmpty()) {
+                        binding.recyclerView.post {
+                            binding.recyclerView.findViewHolderForAdapterPosition(0)?.itemView?.performClick()
+                        }
+                    }
+                }
             }
         }
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
 
         binding.addCar.setOnClickListener {
+            viewModel.setYear(Calendar.getInstance().get(Calendar.YEAR))
             findNavController().navigate(R.id.action_carListFragment_to_logoListFragment)
         }
     }
